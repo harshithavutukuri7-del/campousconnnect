@@ -1,33 +1,42 @@
 # CampusConnect
 
-CampusConnect is a student collaboration demo built with React, Vite, and TypeScript. It uses sample data and browser localStorage, so no external database configuration is required.
-
-## Features
-- Smart team matching
-- Skill exchange and collaboration flows
-- Student dashboard and profile management
-- Opportunity hub
-- Responsive student collaboration pages
+CampusConnect is a React, Vite, and TypeScript student collaboration app. Supabase provides authentication and the database for student profiles, opportunities, and applications.
 
 ## Local setup
-1. Install dependencies: `npm install`
-2. Start the app: `npm run dev`
-3. Build for production: `npm run build`
 
-## Demo account
-- Email: `aisha@campus.edu`
-- Password: `demo123`
+1. Install dependencies with `npm install`.
+2. Create a Supabase project.
+3. In the Supabase SQL Editor, run [`supabase/schema.sql`](./supabase/schema.sql).
+4. Copy `.env.example` to `.env.local` and set `VITE_SUPABASE_ANON_KEY` to the project's publishable/anon key.
+5. Start with `npm run dev`; run `npm run build` to verify a production build.
 
-## Deploy to Vercel
-Import the repository into Vercel and keep the default Vite settings:
+Only the publishable/anon key belongs in frontend environment variables. Never add a Supabase service-role key to this project or to Vercel's `VITE_` variables.
+
+## Admin access
+
+All new accounts are students. To grant admin access, first register and confirm the intended admin account. Then run the following in the Supabase SQL Editor, replacing the email:
+
+```sql
+update public.profiles
+set role = 'admin'
+where id = (select id from auth.users where email = 'admin@example.edu');
+```
+
+Admin users can create, edit, publish, and delete opportunities and update application statuses. Row Level Security enforces these permissions in the database.
+
+## Vercel deployment
+
+Import the repository into Vercel and use the Vite defaults:
+
 - Build command: `npm run build`
 - Output directory: `dist`
 
-`vercel.json` includes a single-page-app rewrite so direct navigation to React routes works after deployment.
+Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` as Production (and Preview, if needed) environment variables in Vercel, then redeploy. `vercel.json` provides the single-page-app rewrite for client-side routes.
 
-## Project structure
-- `src/components` – reusable UI building blocks
-- `src/pages` – landing, dashboard, auth, and feature pages
-- `src/services` – Firebase/demo service modules
-- `src/data` – demo dataset and app state
-- `backend` – database and security rule scaffolding
+In Supabase Authentication → URL Configuration, set the Site URL to `https://campousconnnect.vercel.app` and allow:
+
+- `https://campousconnnect.vercel.app/**`
+- `https://campousconnnect-*-harshithavutukuri7-del.vercel.app/**`
+- `http://localhost:5173/**` for local development
+
+Email signup and email confirmation are enabled in Authentication → Sign In / Providers. After registering, students must confirm their email before their first login.

@@ -92,6 +92,11 @@ button { cursor: pointer; }
 }
 .primary-button:hover, .secondary-button:hover, .danger-button:hover { transform: translateY(-1px); }
 .primary-button.small, .secondary-button.small, .danger-button.small { padding: 0.6rem 0.9rem; font-size: 0.82rem; }
+.primary-button:disabled, .secondary-button:disabled, .danger-button:disabled, button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
 .wide { width: 100%; }
 .user-pill {
   padding: 0.5rem 0.9rem;
@@ -347,6 +352,19 @@ textarea { resize: vertical; }
   color: var(--royal);
 }
 .status-pill { padding: 0.45rem 0.7rem; background: rgba(19,124,80,0.1); color: #0b7b53; }
+.status-submitted, .status-reviewing { background: rgba(52,87,255,0.1); color: #3457ff; }
+.status-rejected { background: rgba(217,61,86,0.1); color: #b52639; }
+.status-accepted { background: rgba(19,124,80,0.1); color: #0b7b53; }
+.student-avatar-fallback, .profile-avatar-fallback {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  background: linear-gradient(135deg, #11245f, #3d6df7);
+  color: white;
+  font-weight: 700;
+}
+.application-row { justify-content: space-between; }
+.application-row > div { display: grid; }
 .tag-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
 .tag { padding: 0.4rem 0.7rem; background: #eef3ff; color: var(--navy); }
 .meta-line { display: flex; align-items: center; gap: 8px; color: var(--muted); margin-top: 8px; }
@@ -368,6 +386,26 @@ textarea { resize: vertical; }
   padding: 12px 14px; background: rgba(247,249,255,0.8); border-radius: 16px;
 }
 .full-span { grid-column: 1 / -1; }
+.page-loading { padding: 32px; text-align: center; color: var(--muted); }
+.dashboard-opportunities { margin-top: 20px; }
+.admin-form-card { margin-bottom: 20px; padding: 20px; }
+.admin-section { margin-top: 20px; }
+.admin-list { display: grid; gap: 12px; }
+.admin-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.admin-list-row:last-child { border-bottom: 0; }
+.admin-list-info { display: grid; gap: 4px; min-width: 0; }
+.admin-list-info span { color: var(--muted); font-size: 0.88rem; }
+.status-select { width: auto; min-width: 130px; }
+.empty-state { padding: 24px; color: var(--muted); text-align: center; }
+.alert.success { background: rgba(19,124,80,0.1); color: #0b7b53; }
+.sidebar-error { margin: 12px; }
 .auth-shell {
   min-height: calc(100vh - 78px);
   display: grid;
@@ -428,8 +466,15 @@ label span { font-size: 0.92rem; font-weight: 600; display: flex; align-items: c
   .app-shell { grid-template-columns: 1fr; }
   .sidebar { display: none; }
   .feature-grid, .stats-grid, .steps-grid, .content-grid.two-col, .two-col, .footer-grid, .messages-layout { grid-template-columns: 1fr; }
+  .profile-grid { grid-template-columns: 1fr; }
   .nav-links { display: none; }
   .mobile-menu { display: inline-flex; }
   .mobile-nav { display: flex; }
   .hero-section { grid-template-columns: 1fr; }
+  .admin-list-row { align-items: flex-start; flex-direction: column; }
+  .card-footer-row { flex-wrap: wrap; }
+  .nav-actions > .secondary-button,
+  .nav-actions > .primary-button,
+  .nav-actions > .user-pill,
+  .nav-actions .notification-wrap { display: none; }
 }

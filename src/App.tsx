@@ -1,61 +1,44 @@
+import { useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useAuth } from './contexts/AuthContext';
+import { AdminDashboard } from './pages/AdminDashboard';
+import { Dashboard } from './pages/Dashboard';
 import { LandingPage } from './pages/LandingPage';
 import { Login } from './pages/Login';
-import { Register } from './pages/Register';
-import { Dashboard } from './pages/Dashboard';
-import { Profile } from './pages/Profile';
-import { TeamMatcher } from './pages/TeamMatcher';
-import { SkillExchange } from './pages/SkillExchange';
 import { OpportunityHub } from './pages/OpportunityHub';
-import { Navbar } from './components/Navbar';
+import { Profile } from './pages/Profile';
+import { Register } from './pages/Register';
+import { SkillExchange } from './pages/SkillExchange';
+import { TeamMatcher } from './pages/TeamMatcher';
 import { Footer } from './components/Footer';
+import { Navbar } from './components/Navbar';
 import { ProtectedRoute } from './components/ProtectedRoute';
-
-const USERS_KEY = 'campusconnect-users';
-const DEMO_USER = {
-  id: 'u1',
-  name: 'Aisha Patel',
-  email: 'aisha@campus.edu',
-  password: 'demo123',
-  college: 'NIT Trichy',
-  department: 'Computer Science',
-  year: '3rd Year',
-  bio: 'Frontend developer exploring AI-driven student platforms and intuitive product experiences.',
-  skills: ['React', 'TypeScript', 'UI/UX', 'Node.js'],
-  interests: ['AI', 'Hackathons'],
-  availability: 'Available',
-  avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80'
-};
-
-const ensureDemoState = () => {
-  const saved = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-  if (!saved.length) {
-    localStorage.setItem(USERS_KEY, JSON.stringify([DEMO_USER]));
-  }
-  if (!localStorage.getItem('campusconnect-user-name')) {
-    localStorage.setItem('campusconnect-user-name', DEMO_USER.name);
-  }
-};
+import { errorMessage } from './services/supabase';
 
 export default function App() {
+  const { user, profile, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  ensureDemoState();
-  const [isAuthenticated, setIsAuthenticated] = useState(Boolean(localStorage.getItem('campusconnect-user')));
+  const [signOutError, setSignOutError] = useState('');
 
-  useEffect(() => {
-    const syncAuth = () => setIsAuthenticated(Boolean(localStorage.getItem('campusconnect-user')));
-    window.addEventListener('campusconnect-auth-change', syncAuth);
-    return () => window.removeEventListener('campusconnect-auth-change', syncAuth);
-  }, []);
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      setSignOutError('');
+    } catch (error) {
+      setSignOutError(errorMessage(error, 'Unable to sign out. Please try again.'));
+    }
+  };
 
   const renderWithLayout = (element: JSX.Element, showFooter = true) => (
     <>
       <Navbar
-        isLoggedIn={isAuthenticated}
-        userName={localStorage.getItem('campusconnect-user-name') || 'Student'}
-        unreadCount={2}
+        isLoggedIn={Boolean(user)}
+        isAdmin={profile?.role === 'admin'}
+        userName={profile?.full_name || user?.email || 'Student'}
+        unreadCount={0}
         mobileMenuOpen={mobileMenuOpen}
+        signOutError={signOutError}
+        onSignOut={handleSignOut}
         onToggleMobileMenu={() => setMobileMenuOpen((value) => !value)}
       />
       {element}
@@ -63,16 +46,24 @@ export default function App() {
     </>
   );
 
+  const protectedPage = (element: JSX.Element, requireAdmin = false) => (
+    <ProtectedRoute requireAdmin={requireAdmin}>
+      {renderWithLayout(element, false)}
+    </ProtectedRoute>
+  );
+
   return (
     <Routes>
       <Route path="/" element={renderWithLayout(<LandingPage />)} />
       <Route path="/login" element={renderWithLayout(<Login />)} />
       <Route path="/register" element={renderWithLayout(<Register />)} />
-      <Route path="/dashboard" element={<ProtectedRoute isAuthenticated={isAuthenticated}>{renderWithLayout(<Dashboard />, false)}</ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute isAuthenticated={isAuthenticated}>{renderWithLayout(<Profile />, false)}</ProtectedRoute>} />
-      <Route path="/team-matcher" element={<ProtectedRoute isAuthenticated={isAuthenticated}>{renderWithLayout(<TeamMatcher />, false)}</ProtectedRoute>} />
-      <Route path="/skill-exchange" element={<ProtectedRoute isAuthenticated={isAuthenticated}>{renderWithLayout(<SkillExchange />, false)}</ProtectedRoute>} />
-      <Route path="/opportunities" element={<ProtectedRoute isAuthenticated={isAuthenticated}>{renderWithLayout(<OpportunityHub />, false)}</ProtectedRoute>} />
+      <Route path="/dashboard" element={protectedPage(<Dashboard />)} />
+      <Route path="/profile" element={protectedPage(<Profile />)} />
+      <Route path="/team-matcher" element={protectedPage(<TeamMatcher />)} />
+      <Route path="/skill-exchange" element={protectedPage(<SkillExchange />)} />
+      <Route path="/opportunities" element={protectedPage(<OpportunityHub />)} />
+      <Route path="/admin" element={protectedPage(<AdminDashboard />, true)} />
+      <Route path="*" element={renderWithLayout(<LandingPage />)} />
     </Routes>
   );
 }

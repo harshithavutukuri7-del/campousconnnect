@@ -3,13 +3,25 @@ import { Link, NavLink } from 'react-router-dom';
 
 type NavbarProps = {
   isLoggedIn?: boolean;
+  isAdmin?: boolean;
   userName?: string;
   onToggleMobileMenu?: () => void;
+  onSignOut?: () => void;
   mobileMenuOpen?: boolean;
   unreadCount?: number;
+  signOutError?: string;
 };
 
-export function Navbar({ isLoggedIn = false, userName = 'Student', onToggleMobileMenu, mobileMenuOpen = false, unreadCount = 0 }: NavbarProps) {
+export function Navbar({
+  isLoggedIn = false,
+  isAdmin = false,
+  userName = 'Student',
+  onToggleMobileMenu,
+  onSignOut,
+  mobileMenuOpen = false,
+  unreadCount = 0,
+  signOutError = ''
+}: NavbarProps) {
   return (
     <header className="topbar">
       <div className="container nav-shell">
@@ -37,6 +49,7 @@ export function Navbar({ isLoggedIn = false, userName = 'Student', onToggleMobil
                 </Link>
               </div>
               <span className="user-pill">{userName}</span>
+              <button type="button" className="secondary-button small" onClick={onSignOut}>Log out</button>
             </>
           ) : (
             <>
@@ -53,14 +66,24 @@ export function Navbar({ isLoggedIn = false, userName = 'Student', onToggleMobil
       {mobileMenuOpen && (
         <div className="mobile-nav">
           <NavLink to="/">Home</NavLink>
-          <NavLink to="/dashboard">Dashboard</NavLink>
-          <NavLink to="/team-matcher">Team Matcher</NavLink>
-          <NavLink to="/skill-exchange">Skill Exchange</NavLink>
-          <NavLink to="/opportunities">Opportunities</NavLink>
-          <NavLink to="/login">Login</NavLink>
-          <NavLink to="/register">Get Started</NavLink>
+          {isLoggedIn ? (
+            <>
+              <NavLink to="/dashboard">Dashboard</NavLink>
+              <NavLink to="/team-matcher">Team Matcher</NavLink>
+              <NavLink to="/skill-exchange">Skill Exchange</NavLink>
+              <NavLink to="/opportunities">Opportunities</NavLink>
+              {isAdmin && <NavLink to="/admin">Admin</NavLink>}
+              <button type="button" onClick={onSignOut}>Log out</button>
+            </>
+          ) : (
+            <>
+              <NavLink to="/login">Login</NavLink>
+              <NavLink to="/register">Get Started</NavLink>
+            </>
+          )}
         </div>
       )}
+      {signOutError && <div className="container alert error" role="alert">{signOutError}</div>}
     </header>
   );
 }

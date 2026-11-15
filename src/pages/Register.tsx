@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const USERS_KEY = 'campusconnect-users';
+import { useAuth } from '../contexts/AuthContext';
+import { errorMessage } from '../services/supabase';
 
 export function Register() {
   const navigate = useNavigate();
+  const { signUp, isConfigured } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -18,13 +21,23 @@ export function Register() {
     year: '1st Year'
   });
 
-  const updateField = (field: string, value: string) => setForm((current) => ({ ...current, [field]: value }));
+  const updateField = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }));
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!form.name || !form.email || !form.password || !form.college || !form.department) {
+    if (!isConfigured) {
+      setError('Supabase is not configured. Add the project URL and anon key to your environment.');
+      return;
+    }
+
+    if (!form.name.trim() || !form.email.trim() || !form.password || !form.college.trim() || !form.department.trim()) {
       setError('Please fill in all required fields.');
+      return;
+    }
+
+    if (form.password.length < 8) {
+      setError('Password must be at least 8 characters long.');
       return;
     }
 
@@ -33,34 +46,26 @@ export function Register() {
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    const exists = users.some((user: any) => user.email.toLowerCase() === form.email.toLowerCase());
-    if (exists) {
-      setError('An account with this email already exists.');
-      return;
+    setError('');
+    setNotice('');
+    setIsSubmitting(true);
+    try {
+      const session = await signUp(form.email.trim(), form.password, {
+        full_name: form.name.trim(),
+        college: form.college.trim(),
+        department: form.department.trim(),
+        year_of_study: form.year
+      });
+      if (session) {
+        navigate('/dashboard');
+      } else {
+        setNotice('Account created. Check your email to confirm your address, then log in.');
+      }
+    } catch (registrationError) {
+      setError(errorMessage(registrationError, 'Unable to create your account. Please try again.'));
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const newUser = {
-      id: Date.now().toString(),
-      name: form.name,
-      email: form.email,
-      password: form.password,
-      college: form.college,
-      department: form.department,
-      year: form.year,
-      bio: 'Student looking for great collaborators and exciting projects.',
-      skills: ['React', 'Communication'],
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
-      interests: ['Hackathons', 'Innovation'],
-      availability: 'Available'
-    };
-
-    users.push(newUser);
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    localStorage.setItem('campusconnect-user', JSON.stringify(newUser));
-    localStorage.setItem('campusconnect-user-name', newUser.name);
-    window.dispatchEvent(new Event('campusconnect-auth-change'));
-    navigate('/dashboard');
   };
 
   return (
@@ -69,38 +74,40 @@ export function Register() {
         <h2>Create your account</h2>
         <p>Join the CampusConnect community.</p>
         <form onSubmit={handleSubmit} className="form-stack">
+          {!isConfigured && <div className="alert error">Backend setup is required before students can register.</div>}
           {error && <div className="alert error">{error}</div>}
+          {notice && <div className="alert success" role="status">{notice}</div>}
           <div className="two-col">
             <label>
               <span>Full name</span>
-              <input value={form.name} onChange={(e) => updateField('name', e.target.value)} placeholder="Your full name" />
+              <input value={form.name} onChange={(e) => updateField('name', e.target.value)} autoComplete="name" required placeholder="Your full name" />
             </label>
             <label>
               <span>College email</span>
-              <input value={form.email} onChange={(e) => updateField('email', e.target.value)} type="email" placeholder="you@college.edu" />
+              <input value={form.email} onChange={(e) => updateField('email', e.target.value)} type="email" autoComplete="email" required placeholder="you@college.edu" />
             </label>
           </div>
           <div className="two-col">
             <label>
               <span>Password</span>
               <div className="password-wrap">
-                <input value={form.password} onChange={(e) => updateField('password', e.target.value)} type={showPassword ? 'text' : 'password'} placeholder="Create password" />
+                <input value={form.password} onChange={(e) => updateField('password', e.target.value)} type={showPassword ? 'text' : 'password'} autoComplete="new-password" minLength={8} required placeholder="At least 8 characters" />
                 <button type="button" className="eye-button" onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={15} /> : <Eye size={15} />}</button>
               </div>
             </label>
             <label>
               <span>Confirm password</span>
-              <input value={form.confirmPassword} onChange={(e) => updateField('confirmPassword', e.target.value)} type={showPassword ? 'text' : 'password'} placeholder="Repeat password" />
+              <input value={form.confirmPassword} onChange={(e) => updateField('confirmPassword', e.target.value)} type={showPassword ? 'text' : 'password'} autoComplete="new-password" minLength={8} required placeholder="Repeat password" />
             </label>
           </div>
           <div className="two-col">
             <label>
               <span>College name</span>
-              <input value={form.college} onChange={(e) => updateField('college', e.target.value)} placeholder="Your college" />
+              <input value={form.college} onChange={(e) => updateField('college', e.target.value)} required placeholder="Your college" />
             </label>
             <label>
               <span>Department</span>
-              <input value={form.department} onChange={(e) => updateField('department', e.target.value)} placeholder="Computer Science" />
+              <input value={form.department} onChange={(e) => updateField('department', e.target.value)} required placeholder="Computer Science" />
             </label>
           </div>
           <label>
@@ -112,7 +119,9 @@ export function Register() {
               <option>4th Year</option>
             </select>
           </label>
-          <button type="submit" className="primary-button wide"><UserPlus size={16} /> Register</button>
+          <button type="submit" className="primary-button wide" disabled={isSubmitting || !isConfigured}>
+            <UserPlus size={16} /> {isSubmitting ? 'Creating account…' : 'Register'}
+          </button>
         </form>
       </div>
     </div>

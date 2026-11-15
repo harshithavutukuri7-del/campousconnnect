@@ -1,29 +1,34 @@
 import { useState } from 'react';
 import { Lock, Mail } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-
-const USERS_KEY = 'campusconnect-users';
+import { useAuth } from '../contexts/AuthContext';
+import { errorMessage } from '../services/supabase';
 
 export function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('aisha@campus.edu');
-  const [password, setPassword] = useState('demo123');
+  const { signIn, isConfigured } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    const user = users.find((entry: any) => entry.email === email && entry.password === password);
-
-    if (!user) {
-      setError('Invalid email or password. Use the demo account or register.');
+    if (!isConfigured) {
+      setError('Supabase is not configured. Add the project URL and anon key to your environment.');
       return;
     }
 
-    localStorage.setItem('campusconnect-user', JSON.stringify(user));
-    localStorage.setItem('campusconnect-user-name', user.name);
-    window.dispatchEvent(new Event('campusconnect-auth-change'));
-    navigate('/dashboard');
+    setError('');
+    setIsSubmitting(true);
+    try {
+      await signIn(email, password);
+      navigate('/dashboard');
+    } catch (loginError) {
+      setError(errorMessage(loginError, 'Unable to sign in. Please try again.'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -32,20 +37,22 @@ export function Login() {
         <h2>Welcome back</h2>
         <p>Log in to continue your student journey.</p>
         <form onSubmit={handleSubmit} className="form-stack">
+          {!isConfigured && <div className="alert error">Backend setup is required before students can sign in.</div>}
           {error && <div className="alert error">{error}</div>}
           <label>
             <span><Mail size={14} /> College email</span>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@college.edu" />
+            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" required placeholder="you@college.edu" />
           </label>
           <label>
             <span><Lock size={14} /> Password</span>
-            <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="••••••••" />
+            <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" required placeholder="Your password" />
           </label>
-          <button type="submit" className="primary-button wide">Login</button>
+          <button type="submit" className="primary-button wide" disabled={isSubmitting || !isConfigured}>
+            {isSubmitting ? 'Signing in…' : 'Login'}
+          </button>
         </form>
         <div className="auth-links">
           <Link to="/register">Create an account</Link>
-          <span>Demo: aisha@campus.edu / demo123</span>
         </div>
       </div>
     </div>

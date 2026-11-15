@@ -14,7 +14,7 @@ const steps = ['Create your profile', 'Discover students', 'Build your team', 'C
 
 const faqs = [
   { q: 'How does CampusConnect match students?', a: 'The platform compares skills, interests, department fit, availability and project fit to suggest ideal teammates.' },
-  { q: 'Can I use it in demo mode?', a: 'Yes. When Firebase credentials are not added, the app works in a realistic local demo mode without claiming saved Firebase data.' },
+  { q: 'Where is my account and application data stored?', a: 'Student accounts, profiles, opportunities and applications are stored in Supabase. The site owner must configure the Supabase project before sign-in and database features are available.' },
   { q: 'Is the platform mobile friendly?', a: 'Yes. CampusConnect is designed responsive for mobile, tablet and desktop devices.' }
 ];
 
@@ -23,7 +23,7 @@ export function LandingPage() {
     <div>
       <section className="hero-section container">
         <div className="hero-copy">
-          <span className="eyebrow">Demo mode • Smart student collaboration</span>
+          <span className="eyebrow">Smart student collaboration</span>
           <h1>Connect. Collaborate. Create.</h1>
           <p>Find your perfect teammates, exchange skills and turn your ideas into reality.</p>
           <div className="hero-actions">
