@@ -14,6 +14,7 @@ type AuthContextValue = {
   isConfigured: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, details: RegistrationDetails) => Promise<Session | null>;
+  resendSignupConfirmation: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -96,6 +97,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data.session;
   }, []);
 
+  const resendSignupConfirmation = useCallback(async (email: string) => {
+    const { error } = await authService.resendSignupConfirmation(email);
+    if (error) throw error;
+  }, []);
+
   const signOut = useCallback(async () => {
     const { error } = await authService.logout();
     if (error) throw error;
@@ -110,9 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isConfigured: isSupabaseConfigured,
     signIn,
     signUp,
+    resendSignupConfirmation,
     signOut,
     refreshProfile
-  }), [user, profile, loading, profileLoading, profileError, signIn, signUp, signOut, refreshProfile]);
+  }), [user, profile, loading, profileLoading, profileError, signIn, signUp, resendSignupConfirmation, signOut, refreshProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

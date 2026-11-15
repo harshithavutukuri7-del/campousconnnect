@@ -10,6 +10,7 @@ import { Profile } from './pages/Profile';
 import { Register } from './pages/Register';
 import { SkillExchange } from './pages/SkillExchange';
 import { TeamMatcher } from './pages/TeamMatcher';
+import { VerifyEmail } from './pages/VerifyEmail';
 import { Footer } from './components/Footer';
 import { Navbar } from './components/Navbar';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -57,6 +58,7 @@ export default function App() {
       <Route path="/" element={renderWithLayout(<LandingPage />)} />
       <Route path="/login" element={renderWithLayout(<Login />)} />
       <Route path="/register" element={renderWithLayout(<Register />)} />
+      <Route path="/verify-email" element={renderWithLayout(<VerifyEmail />)} />
       <Route path="/dashboard" element={protectedPage(<Dashboard />)} />
       <Route path="/profile" element={protectedPage(<Profile />)} />
       <Route path="/team-matcher" element={protectedPage(<TeamMatcher />)} />

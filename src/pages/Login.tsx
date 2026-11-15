@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Lock, Mail } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { errorMessage } from '../services/supabase';
+import { authErrorMessage, isEmailNotConfirmedError } from '../services/authService';
 
 export function Login() {
   const navigate = useNavigate();
@@ -10,6 +10,7 @@ export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [needsVerification, setNeedsVerification] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -20,12 +21,14 @@ export function Login() {
     }
 
     setError('');
+    setNeedsVerification(false);
     setIsSubmitting(true);
     try {
-      await signIn(email, password);
+      await signIn(email.trim().toLowerCase(), password);
       navigate('/dashboard');
     } catch (loginError) {
-      setError(errorMessage(loginError, 'Unable to sign in. Please try again.'));
+      setNeedsVerification(isEmailNotConfirmedError(loginError));
+      setError(authErrorMessage(loginError, 'Unable to sign in. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -38,7 +41,7 @@ export function Login() {
         <p>Log in to continue your student journey.</p>
         <form onSubmit={handleSubmit} className="form-stack">
           {!isConfigured && <div className="alert error">Backend setup is required before students can sign in.</div>}
-          {error && <div className="alert error">{error}</div>}
+          {error && <div className="alert error" role="alert">{error}</div>}
           <label>
             <span><Mail size={14} /> College email</span>
             <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" required placeholder="you@college.edu" />
@@ -52,6 +55,7 @@ export function Login() {
           </button>
         </form>
         <div className="auth-links">
+          {needsVerification && <Link to="/verify-email">Resend confirmation email</Link>}
           <Link to="/register">Create an account</Link>
         </div>
       </div>

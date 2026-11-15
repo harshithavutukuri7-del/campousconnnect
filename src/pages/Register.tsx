@@ -1,16 +1,18 @@
 import { useState } from 'react';
-import { Eye, EyeOff, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, Mail, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { errorMessage } from '../services/supabase';
+import { authErrorMessage } from '../services/authService';
 
 export function Register() {
   const navigate = useNavigate();
-  const { signUp, isConfigured } = useAuth();
+  const { signUp, resendSignupConfirmation, isConfigured } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -31,13 +33,26 @@ export function Register() {
       return;
     }
 
-    if (!form.name.trim() || !form.email.trim() || !form.password || !form.college.trim() || !form.department.trim()) {
+    const fullName = form.name.trim();
+    const email = form.email.trim().toLowerCase();
+
+    if (!fullName || !email || !form.password || !form.college.trim() || !form.department.trim()) {
       setError('Please fill in all required fields.');
       return;
     }
 
-    if (form.password.length < 8) {
-      setError('Password must be at least 8 characters long.');
+    if (fullName.length < 2 || fullName.length > 100) {
+      setError('Full name must be between 2 and 100 characters.');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Enter a valid email address.');
+      return;
+    }
+
+    if (form.password.length < 8 || !/[a-z]/i.test(form.password) || !/\d/.test(form.password)) {
+      setError('Use at least 8 characters, including at least one letter and one number.');
       return;
     }
 
@@ -48,23 +63,40 @@ export function Register() {
 
     setError('');
     setNotice('');
+    setPendingEmail(email);
     setIsSubmitting(true);
     try {
-      const session = await signUp(form.email.trim(), form.password, {
+      const session = await signUp(email, form.password, {
         full_name: form.name.trim(),
         college: form.college.trim(),
         department: form.department.trim(),
         year_of_study: form.year
       });
-      if (session) {
+      if (session?.user.email_confirmed_at) {
         navigate('/dashboard');
       } else {
-        setNotice('Account created. Check your email to confirm your address, then log in.');
+        navigate('/verify-email', { state: { email } });
       }
     } catch (registrationError) {
-      setError(errorMessage(registrationError, 'Unable to create your account. Please try again.'));
+      setError(authErrorMessage(registrationError, 'Unable to create your account. Please try again.'));
     } finally {
       setIsSubmitting(false);
+      setForm((current) => ({ ...current, password: '', confirmPassword: '' }));
+    }
+  };
+
+  const handleResend = async () => {
+    if (!pendingEmail) return;
+    setError('');
+    setNotice('');
+    setIsResending(true);
+    try {
+      await resendSignupConfirmation(pendingEmail);
+      setNotice('If an unconfirmed account exists for this address, a new confirmation email has been requested.');
+    } catch (resendError) {
+      setError(authErrorMessage(resendError, 'Unable to resend the confirmation email. Please try again later.'));
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -75,23 +107,23 @@ export function Register() {
         <p>Join the CampusConnect community.</p>
         <form onSubmit={handleSubmit} className="form-stack">
           {!isConfigured && <div className="alert error">Backend setup is required before students can register.</div>}
-          {error && <div className="alert error">{error}</div>}
+          {error && <div className="alert error" role="alert">{error}</div>}
           {notice && <div className="alert success" role="status">{notice}</div>}
           <div className="two-col">
             <label>
               <span>Full name</span>
-              <input value={form.name} onChange={(e) => updateField('name', e.target.value)} autoComplete="name" required placeholder="Your full name" />
+              <input value={form.name} onChange={(e) => updateField('name', e.target.value)} autoComplete="name" minLength={2} maxLength={100} required placeholder="Your full name" />
             </label>
             <label>
               <span>College email</span>
-              <input value={form.email} onChange={(e) => updateField('email', e.target.value)} type="email" autoComplete="email" required placeholder="you@college.edu" />
+              <input value={form.email} onChange={(e) => updateField('email', e.target.value)} type="email" autoComplete="email" autoCapitalize="none" maxLength={254} required placeholder="you@college.edu" />
             </label>
           </div>
           <div className="two-col">
             <label>
               <span>Password</span>
               <div className="password-wrap">
-                <input value={form.password} onChange={(e) => updateField('password', e.target.value)} type={showPassword ? 'text' : 'password'} autoComplete="new-password" minLength={8} required placeholder="At least 8 characters" />
+                <input value={form.password} onChange={(e) => updateField('password', e.target.value)} type={showPassword ? 'text' : 'password'} autoComplete="new-password" minLength={8} required placeholder="8+ characters with letters and numbers" />
                 <button type="button" className="eye-button" onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={15} /> : <Eye size={15} />}</button>
               </div>
             </label>
@@ -122,6 +154,11 @@ export function Register() {
           <button type="submit" className="primary-button wide" disabled={isSubmitting || !isConfigured}>
             <UserPlus size={16} /> {isSubmitting ? 'Creating account…' : 'Register'}
           </button>
+          {pendingEmail && (
+            <button type="button" className="secondary-button wide" onClick={handleResend} disabled={isResending || !isConfigured}>
+              <Mail size={16} /> {isResending ? 'Sending confirmation…' : 'Resend confirmation email'}
+            </button>
+          )}
         </form>
       </div>
     </div>
